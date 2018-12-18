@@ -16,6 +16,9 @@ import com.facebook.accountkit.ui.AccountKitActivity;
 import com.facebook.accountkit.ui.AccountKitConfiguration;
 import com.facebook.accountkit.ui.LoginType;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -23,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
 
     Button btnPhoneLogin,btnEmailLogin;
 
-    public static int APP_REQUEST_CODE = 99;
+    public static int APP_REQUEST_CODE = 9990;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,45 +39,50 @@ public class MainActivity extends AppCompatActivity {
         btnPhoneLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                phoneLogin();
+                startLoginPage(LoginType.PHONE);
             }
         });
 
         btnEmailLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                emailLogin();
+                startLoginPage(LoginType.EMAIL);
             }
         });
 
         printKeyHash();
     }
 
-    private void emailLogin() {
-        final Intent intent = new Intent(MainActivity.this, AccountKitActivity.class);
-        AccountKitConfiguration.AccountKitConfigurationBuilder configurationBuilder =
-                new AccountKitConfiguration.AccountKitConfigurationBuilder(
-                        LoginType.EMAIL,
-                        AccountKitActivity.ResponseType.CODE); // or .ResponseType.TOKEN
-        // ... perform additional configuration ...
-        intent.putExtra(
-                AccountKitActivity.ACCOUNT_KIT_ACTIVITY_CONFIGURATION,
-                configurationBuilder.build());
-        startActivityForResult(intent, APP_REQUEST_CODE);
+    private void startLoginPage(LoginType loginType){
+        if (loginType == LoginType.EMAIL){
+            final Intent intent = new Intent(MainActivity.this, AccountKitActivity.class);
+            AccountKitConfiguration.AccountKitConfigurationBuilder configurationBuilder =
+                    new AccountKitConfiguration.AccountKitConfigurationBuilder(
+                            LoginType.EMAIL,
+                            AccountKitActivity.ResponseType.TOKEN); // or .ResponseType.TOKEN
+
+            // ... perform additional configuration ...
+            intent.putExtra(
+                    AccountKitActivity.ACCOUNT_KIT_ACTIVITY_CONFIGURATION,
+                    configurationBuilder.build());
+            startActivityForResult(intent, APP_REQUEST_CODE);
+
+        }else if (loginType == LoginType.PHONE){
+            final Intent intent = new Intent(MainActivity.this, AccountKitActivity.class);
+            AccountKitConfiguration.AccountKitConfigurationBuilder configurationBuilder =
+                    new AccountKitConfiguration.AccountKitConfigurationBuilder(
+                            LoginType.PHONE,
+                            AccountKitActivity.ResponseType.TOKEN); // or .ResponseType.TOKEN
+
+            // ... perform additional configuration ...
+            intent.putExtra(
+                    AccountKitActivity.ACCOUNT_KIT_ACTIVITY_CONFIGURATION,
+                    configurationBuilder.build());
+            startActivityForResult(intent, APP_REQUEST_CODE);
+        }
     }
 
-    private void phoneLogin() {
-        final Intent intent = new Intent(MainActivity.this, AccountKitActivity.class);
-        AccountKitConfiguration.AccountKitConfigurationBuilder configurationBuilder =
-                new AccountKitConfiguration.AccountKitConfigurationBuilder(
-                        LoginType.PHONE,
-                        AccountKitActivity.ResponseType.CODE); // or .ResponseType.TOKEN
-        // ... perform additional configuration ...
-        intent.putExtra(
-                AccountKitActivity.ACCOUNT_KIT_ACTIVITY_CONFIGURATION,
-                configurationBuilder.build());
-        startActivityForResult(intent, APP_REQUEST_CODE);
-    }
+
 
     private void printKeyHash() {
         try {
@@ -103,8 +111,21 @@ public class MainActivity extends AppCompatActivity {
             final Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == APP_REQUEST_CODE) { // confirm that this response matches your request
+
             AccountKitLoginResult loginResult = data.getParcelableExtra(AccountKitLoginResult.RESULT_KEY);
+
+            try {
+                JSONObject jsonObject = new JSONObject(loginResult.toString());
+                String id = jsonObject.optString("id");
+                System.out.println("UserId : "+id);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+
+
             String toastMessage;
+
             if (loginResult.getError() != null) {
                 toastMessage = loginResult.getError().getErrorType().getMessage();
 //                showErrorActivity(loginResult.getError());
@@ -113,11 +134,14 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 if (loginResult.getAccessToken() != null) {
                     toastMessage = "Success:" + loginResult.getAccessToken().getAccountId();
+
                 } else {
                     toastMessage = String.format(
                             "Success:%s...",
                             loginResult.getAuthorizationCode().substring(0,10));
+                    System.out.println("Authoriz : "+loginResult.getAuthorizationCode());
                 }
+
 
                 startActivity(new Intent(MainActivity.this,Success.class));
                 // If you have an authorization code, retrieve it from
